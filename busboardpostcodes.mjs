@@ -4,24 +4,25 @@ const prompt = promptSync();
 
 
 const validatePostcode = async function()  {
+    let res = '';
     do {
         try {
             const userPostcode = prompt("Please enter your postcode: ");
             const fetchValidate = await fetch(`https://api.postcodes.io/postcodes/${userPostcode}/validate`);
             const validateUserPostcode = await fetchValidate.json();
+            res = validateUserPostcode.result;
 
-            if(validateUserPostcode.result === false) {
-                throw 'Invalid postcode.'
+            if(res === false) {
+                throw new Error(`It looks like ${userPostcode} isn't a valid postcode.`)
+            } else {
+                return userPostcode;
             }
+            
         }
-
-        catch (err) {
-            console.log("Invalid postcode, please try again.");
+        catch (error) {
+            console.error(error.message);
         }
-
-        
-    } while(validateUserPostcode.result === false);
-        
+    } while(res === false);
 }
 
 
@@ -43,7 +44,7 @@ ${lat}&lon=${lon}&radius=400`)
 
 const getCommonName = function(busInformation, stopIndex) {
     return busInformation['stopPoints'][stopIndex].commonName;
-}
+    }
 
 
 
