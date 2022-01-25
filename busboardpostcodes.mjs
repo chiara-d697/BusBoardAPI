@@ -27,24 +27,72 @@ const validatePostcode = async function()  {
 
 
 const fetchBusStops = async function(userPostcode) {
-    const postcode = await fetch(`https://api.postcodes.io/postcodes?q=${userPostcode}`);
-    const postcodeInfo = await postcode.json();
+    let lat = 0;
+    let lon = 0;
 
-    const lat = postcodeInfo.result[0].latitude;
-    const lon = postcodeInfo.result[0].longitude;
+    
+    try {
+        const postcode = await fetch(`https://api.postcodes.io/postcodes?q=${userPostcode}`);
+        const postcodeInfo = await postcode.json();
 
-    const stopTypes = "NaptanPublicBusCoachTram";
-    const buses = await fetch(`https://api.tfl.gov.uk/StopPoint?stopTypes=${stopTypes}&lat=
+        lat = postcodeInfo.result[0].latitude;
+        lon = postcodeInfo.result[0].longitude;
+
+        const stopTypes = "NaptanPublicBusCoachTram";
+        const buses = await fetch(`https://api.tfl.gov.uk/StopPoint?stopTypes=${stopTypes}&lat=
 ${lat}&lon=${lon}&radius=400`)
-    const busStopsInfo = await buses.json();
+        const busStopsInfo = await buses.json();
 
-        return busStopsInfo;
+        if (busStopsInfo['stopPoints'].length === 0) {
+            throw new Error(`It looks like there aren't any TFL bus stops near you, how about trying a different postcode?`);
+            
+        } else {
+            return busStopsInfo;
+        }
+    }
+    catch(error) {
+        console.error(error.message);
+    }
 }
 
 
-const getCommonName = function(busInformation, stopIndex) {
-    return busInformation['stopPoints'][stopIndex].commonName;
-    }
+const getStopDistance = async function(busInformation, stopIndex) {
+
+        const stationName = busInformation['stopPoints'][stopIndex].commonName;
+        const distance = Math.round(busInformation['stopPoints'][stopIndex].distance);
+    
+        console.log(`${stationName} is ${distance} metres away from the provided postcode.`)
+}
+
+
+const getBusTimes = async function(busInformation) {
+    const busTimes = await fetch(`https://api.tfl.gov.uk/StopPoint/${busInformation['stopPoints'][0].naptanId}/Arrivals`);
+    const stopBusTimes = await busTimes.json();
+
+    const sortedArrivals = stopBusTimes.sort((b1, b2) => b1.timeToStation - b2.timeToStation);
+    return sortedArrivals;
+}
+
+const displayNextBuses = async function(getBusTimes, arrivalIndex) {
+    const lineId = getBusTimes[arrivalIndex].lineId;
+    const destination = getBusTimes[arrivalIndex].destinationName;
+    const arrivalTime = Math.floor(getBusTimes[arrivalIndex].timeToStation / 60);
+
+    console.log(`Bus ${lineId} to ${destination} is arriving in ${arrivalTime}mins.`)
+}
+
+
+
+        const userPostcode = await validatePostcode();
+        const stops = await fetchBusStops(userPostcode);
+        if (stops) {
+            const closestStation = await getStopDistance(stops, 0);
+        }
+        // const closestStation = await getStopDistance(stops, 0);
+        // const arrivals = await getBusTimes(stops);
+
+        // await displayNextBuses(arrivals, 0);
+    
 
 
 
@@ -58,37 +106,13 @@ const getCommonName = function(busInformation, stopIndex) {
 
 
 
-    // const stopPointOneDistance = Math.round(busesInfo.stopPoints[0].distance);
-    // const stopPointTwoDistance = Math.round(busesInfo.stopPoints[1].distance);
-
-    // const busTimesOne = await fetch(`https://api.tfl.gov.uk/StopPoint/${busesInfo.stopPoints[0].naptanId}/Arrivals`);
-    // const busTimesStopOne = await busTimesOne.json()
-
-
-    // busTimesStopOne.sort((b1, b2) => b1.timeToStation - b2.timeToStation);
-
-
-    // console.log(`Bus ${busTimesStopOne[0].lineId} is coming in ${Math.floor(busTimesStopOne[0].timeToStation/60)} minutes and ${busTimesStopOne[0].timeToStation%60} seconds`);
-
-    // console.log(
-    // `${stopPointOneName} is ${stopPointOneDistance} metres away from ${userPostcode}.
-    // Next bus: 
-
-
-    //  ${stopPointTwoName} is ${stopPointTwoDistance} metres away from ${userPostcode}.
-    // Next bus:
-    //  `)
 
 
 
+    
+  
 
 
-
-
-
-    const postcodeRes = await validatePostcode();
-    // const busInformation = await fetchBusStops(postcodeRes);
-    // getCommonName(busInformation, 0);
 
 
 
