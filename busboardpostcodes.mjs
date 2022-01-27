@@ -40,7 +40,7 @@ const fetchBusStops = async function(userPostcode) {
 
         const stopTypes = "NaptanPublicBusCoachTram";
         const buses = await fetch(`https://api.tfl.gov.uk/StopPoint?stopTypes=${stopTypes}&lat=
-${lat}&lon=${lon}&radius=400`)
+${lat}&lon=${lon}&radius=800`)
         const busStopsInfo = await buses.json();
 
         if (busStopsInfo['stopPoints'].length === 0) {
@@ -65,15 +65,15 @@ const getStopDistance = async function(busInformation, stopIndex) {
 }
 
 
-const getBusTimes = async function(busInformation) {
+const getBusTimes = async function(busInformation, stopIndex) {
 
     try {
-        const busTimes = await fetch(`https://api.tfl.gov.uk/StopPoint/${busInformation['stopPoints'][0].naptanId}/Arrivals`);
+        const busTimes = await fetch(`https://api.tfl.gov.uk/StopPoint/${busInformation['stopPoints'][stopIndex].naptanId}/Arrivals`);
         const stopBusTimes = await busTimes.json();
         const sortedArrivals = stopBusTimes.sort((b1, b2) => b1.timeToStation - b2.timeToStation);
 
 
-        if(busTimes.length === 0) {
+        if(stopBusTimes.length === 0) {
             throw new Error('It looks like there aren\'t any predicted arrivals near you. Why not try at a different time?');
         } else {
             return sortedArrivals;
@@ -87,21 +87,30 @@ const getBusTimes = async function(busInformation) {
 
 const displayNextBuses = async function(getBusTimes, arrivalIndex) {
 
-    const lineId = getBusTimes[arrivalIndex].lineId;
-    const destination = getBusTimes[arrivalIndex].destinationName;
-    const arrivalTime = Math.floor(getBusTimes[arrivalIndex].timeToStation / 60);
+        const lineId = getBusTimes[arrivalIndex].lineId;
+        const destination = getBusTimes[arrivalIndex].destinationName;
+        const arrivalTime = Math.floor(getBusTimes[arrivalIndex].timeToStation / 60);
 
-    console.log(`Bus ${lineId} to ${destination} is arriving in ${arrivalTime}mins.`)
+        console.log(`Bus ${lineId} to ${destination} is arriving in ${arrivalTime}mins.`)
+    
 }
 
 
 
         const userPostcode = await validatePostcode();
         const stops = await fetchBusStops(userPostcode);
+
+        
         if (stops) {
             const closestStation = await getStopDistance(stops, 0);
             for (let i = 0; i < 5; i++) {
-                const arrivals = await getBusTimes(stops);
+                const arrivals = await getBusTimes(stops, 0);
+                await displayNextBuses(arrivals, i);
+            }
+
+            const secondClosestStation = await getStopDistance(stops, 1);
+            for (let i = 0; i < 5; i++) {
+                const arrivals = await getBusTimes(stops, 1);
                 await displayNextBuses(arrivals, i);
             }
         }    
