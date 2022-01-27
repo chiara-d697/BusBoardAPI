@@ -14,7 +14,6 @@ fetch(`https://api.tfl.gov.uk/StopPoint/${userStopCode}/Arrivals`
     .then(body => {
         body.sort((b1, b2) => b1.timeToStation - b2.timeToStation);
 
-        console.log(body);
         for(const bus of body) {
             console.log(`Bus ${bus.lineId} is coming in ${Math.floor(bus.timeToStation/60)} minutes and ${bus.timeToStation%60} seconds`);
         }

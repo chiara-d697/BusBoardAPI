@@ -66,14 +66,27 @@ const getStopDistance = async function(busInformation, stopIndex) {
 
 
 const getBusTimes = async function(busInformation) {
-    const busTimes = await fetch(`https://api.tfl.gov.uk/StopPoint/${busInformation['stopPoints'][0].naptanId}/Arrivals`);
-    const stopBusTimes = await busTimes.json();
 
-    const sortedArrivals = stopBusTimes.sort((b1, b2) => b1.timeToStation - b2.timeToStation);
-    return sortedArrivals;
+    try {
+        const busTimes = await fetch(`https://api.tfl.gov.uk/StopPoint/${busInformation['stopPoints'][0].naptanId}/Arrivals`);
+        const stopBusTimes = await busTimes.json();
+        const sortedArrivals = stopBusTimes.sort((b1, b2) => b1.timeToStation - b2.timeToStation);
+
+
+        if(busTimes.length === 0) {
+            throw new Error('It looks like there aren\'t any predicted arrivals near you. Why not try at a different time?');
+        } else {
+            return sortedArrivals;
+        }
+    }
+
+    catch(error) {
+        console.error(error.message);
+    }
 }
 
 const displayNextBuses = async function(getBusTimes, arrivalIndex) {
+
     const lineId = getBusTimes[arrivalIndex].lineId;
     const destination = getBusTimes[arrivalIndex].destinationName;
     const arrivalTime = Math.floor(getBusTimes[arrivalIndex].timeToStation / 60);
@@ -87,12 +100,11 @@ const displayNextBuses = async function(getBusTimes, arrivalIndex) {
         const stops = await fetchBusStops(userPostcode);
         if (stops) {
             const closestStation = await getStopDistance(stops, 0);
-        }
-        // const closestStation = await getStopDistance(stops, 0);
-        // const arrivals = await getBusTimes(stops);
-
-        // await displayNextBuses(arrivals, 0);
-    
+            for (let i = 0; i < 5; i++) {
+                const arrivals = await getBusTimes(stops);
+                await displayNextBuses(arrivals, i);
+            }
+        }    
 
 
 
